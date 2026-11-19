@@ -22371,11 +22371,11 @@ body.is-tablet #repoSugModal .rs-lista{max-height:none;flex:1 1 auto;min-height:
     ok.sort(function(a,b){ return (a.s.t||0)-(b.s.t||0); });
     var L=S().lojas(), tit=(lj>=0)?nomeLoja(L[lj]):'Todas as lojas', data=new Date().toLocaleDateString('pt-BR');
     function montar(){
-    var hint=$('repoShPrev').querySelector('.sh-info'); if(hint) hint.textContent=ehWebView()?'Baixar PDF funciona. Baixar pelo Chrome abre uma página lá com o botão de baixar a imagem (teste).':'Toque em Baixar imagem para salvar em JPG. Se ela abrir quebrada, use Baixar em PDF.';
+    var hint=$('repoShPrev').querySelector('.sh-info'); if(hint) hint.textContent='Toque em Baixar PDF para salvar a imagem.';
     var n=Math.ceil(ok.length/POR_IMG); pgs=[];
     for(var i=0;i<n;i++) pgs.push(pagina(ok.slice(i*POR_IMG,(i+1)*POR_IMG),i+1,n,tit,data));
     $('repoShPgs').innerHTML=pgs.map(function(c,i){
-      return '<div class="sh-pg"><img alt="Imagem '+(i+1)+'" src="'+c.toDataURL('image/jpeg',0.92)+'"><div class="sh-pgb">'+(ehWebView()?'<button type="button" class="p" data-a="p" data-i="'+i+'">📄 Baixar PDF</button><button type="button" data-a="c" data-i="'+i+'">🌐 Baixar pelo Chrome</button>':'<button type="button" class="p" data-a="d" data-i="'+i+'">💾 Baixar imagem</button><button type="button" data-a="p" data-i="'+i+'">📄 Baixar em PDF</button><button type="button" data-a="c" data-i="'+i+'">🌐 Baixar pelo Chrome</button>')+'</div></div>';
+      return '<div class="sh-pg"><img alt="Imagem '+(i+1)+'" src="'+c.toDataURL('image/jpeg',0.92)+'"><div class="sh-pgb"><button type="button" class="p" data-a="p" data-i="'+i+'">📄 Baixar PDF</button></div></div>';
     }).join('');
     $('repoShPrevTit').textContent=(n>1?n+' imagens prontas':'Imagem pronta')+(pular?' ('+pular+' sem saldo, fora)':'');
     $('repoShPrev').classList.add('active'); bloq();
