@@ -9,7 +9,8 @@
    1) Capacitor (Filesystem + Share), 2) Web Share com arquivo, 3) download comum (Chrome/WebIntoApp). */
 (function(){
   function ehWebView(){ var u=navigator.userAgent||''; return /Android/i.test(u) && (/;\s*wv\)/i.test(u) || /Version\/\d+\.\d+.*Chrome/i.test(u)); }
-  function aviso(msg){ try{ if(typeof window.mostrarAlertaApp==='function'){ window.mostrarAlertaApp(msg,'⚠️'); return; } }catch(_){} try{ alert(msg); }catch(_){} }
+  function aviso(msg,ic){ try{ if(typeof window.mostrarAlertaApp==='function'){ window.mostrarAlertaApp(msg,ic||'⚠️'); return; } }catch(_){} try{ alert(msg); }catch(_){} }
+  function limpaNome(n){ n=String(n||'arquivo'); try{ n=n.normalize('NFD').replace(/[\u0300-\u036f]/g,''); }catch(_){} return n.replace(/[^A-Za-z0-9._-]+/g,'_').replace(/^_+/,'')||'arquivo'; }
   function ancora(href,nome,revogar){
     var a=document.createElement('a'); a.href=href; a.download=nome; a.rel='noopener';
     document.body.appendChild(a); a.click();
@@ -25,15 +26,22 @@
   }
   function viaCapacitor(blob,nome){
     var P=window.Capacitor && window.Capacitor.Plugins;
-    if(!P || !P.Filesystem || !P.Share) return false;
+    if(!P || !P.Filesystem) return false;
     var fr=new FileReader();
     fr.onload=function(){
       var b64=String(fr.result).split(',')[1]||'';
-      P.Filesystem.writeFile({path:nome,data:b64,directory:'CACHE',recursive:true})
-        .then(function(r){ return P.Share.share({title:nome,url:r.uri,dialogTitle:'Salvar ou enviar '+nome}); })
-        .catch(function(e){ if(e && /cancel/i.test(String(e.message||e))) return; baixarComum(blob,nome); });
+      // 1) salva direto na pasta Documentos/EstoQ
+      P.Filesystem.writeFile({path:'EstoQ/'+nome,data:b64,directory:'DOCUMENTS',recursive:true})
+        .then(function(){ aviso('Salvo em Documentos/EstoQ: '+nome,'✅'); })
+        .catch(function(e1){
+          // 2) se não puder, abre o compartilhar do Android
+          if(!P.Share){ aviso('Não foi possível salvar: '+((e1&&e1.message)||e1)); return; }
+          P.Filesystem.writeFile({path:nome,data:b64,directory:'CACHE',recursive:true})
+            .then(function(r){ return P.Share.share({title:nome,url:r.uri,dialogTitle:'Salvar ou enviar '+nome}); })
+            .catch(function(e2){ var m=String((e2&&e2.message)||e2); if(/cancel/i.test(m)) return; aviso('Não foi possível salvar: '+m); });
+        });
     };
-    fr.onerror=function(){ baixarComum(blob,nome); };
+    fr.onerror=function(){ aviso('Não foi possível ler o arquivo.'); };
     fr.readAsDataURL(blob);
     return true;
   }
@@ -48,7 +56,7 @@
   }
   window.estoqSalvarBlob=function(blob,nome){
     try{
-      nome=String(nome||'arquivo');
+      nome=limpaNome(nome);
       if(viaCapacitor(blob,nome)) return;
       if(ehWebView() && viaShare(blob,nome)) return;
       baixarComum(blob,nome);
