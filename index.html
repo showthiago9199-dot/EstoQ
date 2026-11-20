@@ -526,13 +526,13 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       var save0=d.save;
       var salvarDireto=function(nome){
         try{
+          var nm=String(nome||'documento.pdf');if(!/\.pdf$/i.test(nm))nm+='.pdf';
           var s=pdfAsciiSeguro(d);
-          if(s){
-            var nm=String(nome||'documento.pdf');if(!/\.pdf$/i.test(nm))nm+='.pdf';
-            window.estoqSalvarBlob(new Blob([s],{type:'application/pdf'}),nm);
-            return d;
-          }
-        }catch(e){console.warn('PDF ASCII falhou, usando save padrão',e);}
+          // com fotos: PDF ASCII; sem fotos: PDF normal. Os dois passam pelo salvar do app (evita o download do WebView)
+          var blob=s?new Blob([s],{type:'application/pdf'}):d.output('blob');
+          window.estoqSalvarBlob(blob,nm);
+          return d;
+        }catch(e){console.warn('PDF: falha ao salvar pelo app, usando save padrão',e);}
         return save0.call(d,nome);
       };
       d.__saveDireto=salvarDireto;
