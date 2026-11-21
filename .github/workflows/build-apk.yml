@@ -1,3 +1,7 @@
+.github/workflows/build-apk.yml
+
+github.com/showthiago9199-dot/EstoQ/releases/tag/latest
+
 name: Build APK
 on:
   workflow_dispatch:
@@ -25,6 +29,16 @@ jobs:
           npx cap init EstoQ io.github.showthiago9199dot.estoq --web-dir=www
           npx cap add android
           npx cap sync android
+      - name: Aplicar icone
+        run: |
+          sudo apt-get install -y imagemagick > /dev/null
+          RES=android/app/src/main/res
+          rm -rf $RES/mipmap-anydpi-v26
+          for d in mdpi:48 hdpi:72 xhdpi:96 xxhdpi:144 xxxhdpi:192; do
+            n=${d%%:*}; s=${d##*:}
+            convert icon-512.png -resize ${s}x${s} $RES/mipmap-$n/ic_launcher.png
+            convert icon-512.png -resize ${s}x${s} \( -size ${s}x${s} xc:none -fill white -draw "circle $((s/2)),$((s/2)) $((s/2)),0" \) -compose DstIn -composite $RES/mipmap-$n/ic_launcher_round.png
+          done
       - name: Compilar
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Publicar APK na Release
