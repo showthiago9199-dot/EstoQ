@@ -1,6 +1,8 @@
 name: Build APK
 on:
   workflow_dispatch:
+permissions:
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,7 +27,10 @@ jobs:
           npx cap sync android
       - name: Compilar
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
-      - uses: actions/upload-artifact@v4
-        with:
-          name: EstoQ-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+      - name: Publicar APK na Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp android/app/build/outputs/apk/debug/app-debug.apk EstoQ.apk
+          gh release delete latest --yes --cleanup-tag || true
+          gh release create latest EstoQ.apk --title "EstoQ" --notes "APK mais recente"
