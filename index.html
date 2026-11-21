@@ -7373,15 +7373,14 @@ Ex.: Esta moto está com arranhado..." style="width:100%;min-height:130px;resize
             const comFotos=notas.filter(n=>Array.isArray(n.fotos)&&n.fotos.length).length;
             const M=10, LARG=190, BASE=285;
 
-            doc.setFillColor(0,0,0);doc.rect(0,0,210,24,'F');
-            doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(12);
-            doc.text('ANOTACOES IMPORTANTES',M,9);
-            doc.setFont('helvetica','normal');doc.setFontSize(7.5);
-            doc.text(pdfTxt('Titulo: '+tituloConf),M,15);
-            doc.text(pdfTxt('Conferido por: '+conferente),M,20);
-            doc.text('Gerado em: '+dataHora,140,9);
-            doc.text(`Total: ${notas.length} anotacao(oes) | Com fotos: ${comFotos}`,140,15);
-            let y=31;
+            doc.setTextColor(0, 0, 0);doc.setFont('helvetica','bold');doc.setFontSize(19);
+            doc.text('ANOTACOES IMPORTANTES',M,14);
+            doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+            doc.text(pdfTxt('Titulo: '+tituloConf),M,21);
+            doc.text(pdfTxt('Conferido por: '+conferente),M,26.5);
+            doc.text('Gerado em: '+dataHora,M,32);
+            doc.text(`Total: ${notas.length} anotacao(oes) | Com fotos: ${comFotos}`,M+75,32);
+            let y=39;
             doc.setTextColor(0,0,0);
 
             for(let k=0;k<notas.length;k++){
@@ -7403,13 +7402,13 @@ Ex.: Esta moto está com arranhado..." style="width:100%;min-height:130px;resize
 
                 // faixa lateral + cabeçalho do bloco
                 const yIni=y;
-                doc.setFillColor(245,245,245);doc.rect(M,y,LARG,altCabecalho,'F');
+                doc.setFillColor(241,243,245);doc.rect(M,y,LARG,altCabecalho,'F');
                 doc.setFillColor(0,0,0);doc.rect(M,y,1.2,altCabecalho,'F');
                 y+=5;
                 doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(0,0,0);
                 doc.text(linhasTitulo,M+4,y);y+=linhasTitulo.length*4.6-1;
-                if(info){doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(90,90,90);doc.text(info,M+4,y+0.5);y+=4.5;}
-                if(linhasTexto.length){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(30,30,30);doc.text(linhasTexto,M+4,y+1.5);y+=linhasTexto.length*4.2+1;}
+                if(info){doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(60,60,60);doc.text(info,M+4,y+0.5);y+=4.5;}
+                if(linhasTexto.length){doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(0,0,0);doc.text(linhasTexto,M+4,y+1.5);y+=linhasTexto.length*4.2+1;}
                 y=yIni+altCabecalho+2;
 
                 const fotos=Array.isArray(n.fotos)?n.fotos.filter(Boolean):[];
@@ -16897,35 +16896,37 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
     // ainda não conferidos ficam de fora - isso vale também para motos:
     // uma moto com 0 chassi conferido cai em "fisico = null" (não
     // conferido) e é ignorada, do mesmo jeito que qualquer outro item.
-    doc.setFillColor(0, 0, 0);
-    doc.rect(0, 0, 210, 22, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(19);
     doc.setFont('helvetica', 'bold');
-    doc.text(removerAcentos('RELATORIO DE DIFERENCAS DE ESTOQUE'), 10, 9);
-    doc.setFontSize(7);
+    doc.text(removerAcentos('RELATORIO DE DIFERENCAS DE ESTOQUE'), 10, 14);
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
-    doc.text(removerAcentos(`Titulo: ${tituloRelatorio}`), 10, 14);
-    doc.text(`Gerado em: ${dataHora}`, 140, 11);
-    doc.text(removerAcentos(`Conferido por: ${nomeUsuarioConferencia || 'Nao informado'}`), 10, 19);
+    doc.text(removerAcentos(`Titulo: ${tituloRelatorio}`), 10, 21);
+    doc.text(removerAcentos(`Conferido por: ${nomeUsuarioConferencia || 'Nao informado'}`), 10, 26.5);
 
     const { itens, moveis, especiaisPDF, listaProcessada, itensDivergentes, itensAdicionados, gerarStatusTexto, itensNaoConferidosD, motosNaoConfD, totalChassisNaoConfD } = prepararDadosDiferencas(itensParaImprimir, moveisParaImprimir, motosParaImprimir, airesParaImprimir, sofasParaImprimir);
 
     const registros = itensDivergentes.length + itensAdicionados.length + itensNaoConferidosD.length + motosNaoConfD.length;
 
-    let startY = 26;
-    doc.setFontSize(7.5);
-    doc.setTextColor(90, 90, 90);
+    let startY = 34;
+    doc.setFontSize(10.5);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'bold');
+    const _txtReg = removerAcentos(`Registros para resolver: ${registros}`);
+    doc.text(_txtReg, 10, startY);
+    const _wReg = doc.getTextWidth(_txtReg);
+    doc.setFontSize(8.5);
     doc.setFont('helvetica', 'normal');
-    doc.text(removerAcentos(`Registros para resolver: ${registros}`), 10, startY);
-    startY += 6;
+    doc.text(`Gerado em: ${dataHora}`, 10 + _wReg + 10, startY);
+    startY += 11;
 
     const desenharSecao = (titulo, corRGB, lista) => {
         if (lista.length === 0) return;
         if (startY > 278) { doc.addPage(); startY = 14; }
 
-        doc.setTextColor(40, 40, 40);
-        doc.setFontSize(8.2);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9.6);
         doc.setFont('helvetica', 'bold');
         doc.text(removerAcentos(titulo), 10, startY);
 
@@ -16956,7 +16957,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
         });
 
         doc.autoTable({
-            startY: startY + 2,
+            startY: startY + 3,
             margin: { left: 7, right: 7 },
             head: headers,
             body: body,
@@ -16986,7 +16987,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
             }
         });
 
-        startY = doc.lastAutoTable.finalY + 3;
+        startY = doc.lastAutoTable.finalY + 10;
     };
 
     const codigosMotosPDF = new Set((Array.isArray(motosParaImprimir) ? motosParaImprimir : []).map(x => String(x?.cod ?? '').trim()).filter(Boolean));
@@ -17039,7 +17040,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
             if (m.obs && String(m.obs).trim() && !motoTemObsEditada(conferenciaIdPDF, m)) bodyMotos.push([{content:`OBS: ${removerAcentos(m.obs.trim())}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fillColor: [232,232,232], fontSize: 7.5,halign:'left',cellPadding:{top:0.25,right:1.2,bottom:0.45,left:1.2}}}]);
         });
         doc.autoTable({startY:startY+3,margin:{left:10,right:10},head:[['#','Moto / Modelo','Cod.','Chassi','Chapa','Sis','Conf.','Status']],body:bodyMotos,theme:'grid',headStyles:{font:'helvetica',fillColor:[0,0,0],textColor:[255,255,255],fontStyle:'bold',fontSize:8.5,cellPadding:1.2},styles:{font:'helvetica',fontSize:8,cellPadding:1.2,textColor:[20,20,20]},columnStyles:{0:{cellWidth:7},1:{cellWidth:58},2:{cellWidth:15,halign:'center'},3:{cellWidth:40,fontSize:7.2},4:{cellWidth:25,halign:'center',fontSize:7.2},5:{cellWidth:10,halign:'center'},6:{cellWidth:12,halign:'center'},7:{cellWidth:30,halign:'center'}}});
-        startY=doc.lastAutoTable.finalY+6;
+        startY=doc.lastAutoTable.finalY+10;
     }
 
     if (motosNaoConfD.length) {
@@ -17054,7 +17055,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
             if (m.obs && String(m.obs).trim() && !motoTemObsEditada(conferenciaIdPDF, m)) bodyMotosNC.push([{content:`OBS: ${removerAcentos(m.obs.trim())}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fillColor: [232,232,232], fontSize: 7.5,halign:'left',cellPadding:{top:0.25,right:1.2,bottom:0.45,left:1.2}}}]);
         });
         doc.autoTable({startY:startY+3,margin:{left:10,right:10},head:[['#','Moto / Modelo','Cod.','Chassi','Chapa','Sis','Conf.','Status']],body:bodyMotosNC,theme:'grid',headStyles:{font:'helvetica',fillColor:[0,0,0],textColor:[255,255,255],fontStyle:'bold',fontSize:8.5,cellPadding:1.2},styles:{font:'helvetica',fontSize:8,cellPadding:1.2,textColor:[20,20,20]},columnStyles:{0:{cellWidth:7},1:{cellWidth:58},2:{cellWidth:15,halign:'center'},3:{cellWidth:40,fontSize:7.2},4:{cellWidth:25,halign:'center',fontSize:7.2},5:{cellWidth:10,halign:'center'},6:{cellWidth:12,halign:'center'},7:{cellWidth:30,halign:'center'}}});
-        startY=doc.lastAutoTable.finalY+6;
+        startY=doc.lastAutoTable.finalY+10;
     }
 
     // Todos os adicionados ficam por último.
@@ -17400,17 +17401,15 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
     const agora = new Date();
     const dataHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toLocaleTimeString('pt-BR');
 
-    doc.setFillColor(0, 0, 0);
-    doc.rect(0, 0, 210, 22, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(19);
     doc.setFont("helvetica", "bold");
-    doc.text(removerAcentos(`RELATORIO DE CONFERENCIA DE ESTOQUE`), 10, 9);
-    doc.setFontSize(7);
+    doc.text(removerAcentos(`RELATORIO DE CONFERENCIA DE ESTOQUE`), 10, 14);
+    doc.setFontSize(8.5);
     doc.setFont("helvetica", "normal");
-    doc.text(removerAcentos(`Titulo: ${tituloRelatorio}`), 10, 14);
-    doc.text(`Gerado em: ${dataHora}`, 140, 11);
-    doc.text(removerAcentos(`Conferido por: ${nomeUsuarioConferencia || 'Nao informado'}`), 10, 19);
+    doc.text(removerAcentos(`Titulo: ${tituloRelatorio}`), 10, 21);
+    doc.text(removerAcentos(`Conferido por: ${nomeUsuarioConferencia || 'Nao informado'}`), 10, 26.5);
+    doc.text(`Gerado em: ${dataHora}`, 10, 32);
 
     // Mapa dos itens que foram conferidos na tela de Stock de Móveis (por
     // código), com status já calculado (conjuntos completos, faltas e
@@ -17663,14 +17662,14 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
         return textoOk;
     };
 
-    let startY = 26;
+    let startY = 39;
 
     const desenharSecao = (titulo, corRGB, lista) => {
         if (lista.length === 0) return;
         if (startY > 278) { doc.addPage(); startY = 14; }
 
-        doc.setTextColor(40, 40, 40);
-        doc.setFontSize(8.2);
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(9.6);
         doc.setFont("helvetica", "bold");
         doc.text(removerAcentos(titulo), 10, startY);
 
@@ -17701,7 +17700,7 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
         });
 
         doc.autoTable({
-            startY: startY + 2,
+            startY: startY + 3,
             margin: { left: 7, right: 7 },
             head: headers,
             body: body,
@@ -17731,7 +17730,7 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
             }
         });
 
-        startY = doc.lastAutoTable.finalY + 6;
+        startY = doc.lastAutoTable.finalY + 10;
     };
 
     // Relatório principal separado por origem, no mesmo conceito da seção de Motos.
@@ -17853,7 +17852,7 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
                 if(data.section==='body' && data.column.index===8) data.cell.styles.fontStyle='bold';
             }
         });
-        startY=doc.lastAutoTable.finalY+3;
+        startY=doc.lastAutoTable.finalY+10;
     };
     desenharSecaoMotos('MOTOS CONFERIDAS', motosConferidas);
     desenharSecaoMotos('MOTOS NAO CONFERIDAS', motosNaoConferidas);
@@ -17984,17 +17983,15 @@ function gerarPDFConferenciaProvedor(registro) {
         }
     });
 
-    doc.setFillColor(0,0,0);
-    doc.rect(0,0,210,22,'F');
-    doc.setTextColor(255,255,255);
+    doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica','bold');
-    doc.setFontSize(11);
-    doc.text(removerAcentos('CONFERENCIA DE PROVEDOR'),10,9);
+    doc.setFontSize(19);
+    doc.text(removerAcentos('CONFERENCIA DE PROVEDOR'),10,14);
     doc.setFont('helvetica','normal');
-    doc.setFontSize(7);
-    doc.text(removerAcentos(`Titulo: ${registro?.titulo || 'Conferencia Provedor'}`),10,14);
-    doc.text(`Gerado em: ${dataHora}`,140,11);
-    doc.text(removerAcentos(`Conferido por: ${nomeUsuarioConferencia || 'Nao informado'}`),10,19);
+    doc.setFontSize(8.5);
+    doc.text(removerAcentos(`Titulo: ${registro?.titulo || 'Conferencia Provedor'}`),10,21);
+    doc.text(removerAcentos(`Conferido por: ${nomeUsuarioConferencia || 'Nao informado'}`),10,26.5);
+    doc.text(`Gerado em: ${dataHora}`,10,32);
 
     const body = conferidos.map(item => {
         const info = item?.__volumeInfo || porCodigo.get(String(item?.cod || '').trim());
@@ -18048,7 +18045,7 @@ function gerarPDFConferenciaProvedor(registro) {
 
     if (body.length) {
         doc.autoTable({
-            startY:27, margin:{left:5,right:5},
+            startY:38, margin:{left:5,right:5},
             head:[['COD','REFERENCIA','NOME','VOL','SIS','FIS','STATUS']],
             body, theme:'grid',
             headStyles:{font:'helvetica',fillColor:[0,0,0],textColor:[255,255,255],fontStyle:'bold',fontSize:6.5,cellPadding:0.7,lineWidth:0.2},
@@ -21738,16 +21735,15 @@ function grupoAppIcone(nome){ for(var i=0;i<GRUPOS_APP.length;i++){ if(GRUPOS_AP
     var nomes=sel.map(function(k){ return nomeLoja(lojas[k]); });
     var doc=new window.jspdf.jsPDF({orientation:sel.length>3?'landscape':'portrait'});
     var W=doc.internal.pageSize.getWidth();
-    doc.setFillColor(31,95,168); doc.rect(0,0,W,26,'F');
-    doc.setTextColor(255,255,255); doc.setFont(undefined,'bold'); doc.setFontSize(16);
-    doc.text(T('Comparativo de estoque'),14,12);
-    doc.setFont(undefined,'normal'); doc.setFontSize(9);
-    doc.text(T('Origem: '+nomes[0]+'  ->  Destino: '+nomes.slice(1).join(', ')),14,18);
-    doc.text(T('Data e hora: '+new Date().toLocaleString('pt-BR')),14,23);
+    doc.setTextColor(0, 0, 0); doc.setFont(undefined,'bold'); doc.setFontSize(21);
+    doc.text(T('Comparativo de estoque'),14,14);
+    doc.setFont(undefined,'normal'); doc.setFontSize(9.5);
+    doc.text(T('Origem: '+nomes[0]+'  ->  Destino: '+nomes.slice(1).join(', ')),14,21);
+    doc.text(T('Data e hora: '+new Date().toLocaleString('pt-BR')),14,26.5);
     doc.setTextColor(0,0,0);
     var prov=Object.keys(provSel).length?' · Provedor filtrado':'';
     doc.setFontSize(10); doc.setFont(undefined,'bold');
-    doc.text(T('Tem na origem e nao tem no destino ('+rows.length+')'+prov),14,34);
+    doc.text(T('Tem na origem e nao tem no destino ('+rows.length+')'+prov),14,38);
     doc.setFont(undefined,'normal');
     var tot=0, linhas=rows.map(function(r){
       var pl=planoCmp(r), sug=0;
@@ -21760,7 +21756,7 @@ function grupoAppIcone(nome){ for(var i=0;i<GRUPOS_APP.length;i++){ if(GRUPOS_AP
     var cs={}; cs[2]={cellWidth:'auto'}; cs[3+sel.length]={halign:'center',fontStyle:'bold',textColor:[16,128,80]};
     sel.forEach(function(k,i){ cs[3+i]={halign:'center'}; });
     doc.autoTable({
-      startY:38, head:[cab], body:linhas, theme:'grid',
+      startY:42, head:[cab], body:linhas, theme:'grid',
       styles:{fontSize:9,cellPadding:2.4,lineColor:[200,208,220],lineWidth:0.2,textColor:[30,35,45],valign:'middle'},
       headStyles:{fillColor:[31,95,168],textColor:[255,255,255],fontStyle:'bold',halign:'center'},
       alternateRowStyles:{fillColor:[244,247,252]},
@@ -22400,9 +22396,9 @@ function grupoAppIcone(nome){ for(var i=0;i<GRUPOS_APP.length;i++){ if(GRUPOS_AP
     if(!window.jspdf||!window.jspdf.jsPDF){ if(typeof mostrarAlertaApp==='function') mostrarAlertaApp('Biblioteca de PDF indisponível.','⚠️'); return; }
     var T=function(s){ return (typeof repoTextoPdf==='function')?repoTextoPdf(s):String(s); };
     var doc=new window.jspdf.jsPDF();
-    doc.setFontSize(14); doc.text(T('Mercadorias a serem enviadas'),14,16);
-    doc.setFontSize(9); doc.text(T('Data e hora: '+new Date().toLocaleString('pt-BR')),14,22);
-    var y=32;
+    doc.setFont(undefined,'bold'); doc.setFontSize(20); doc.text(T('Mercadorias a serem enviadas'),14,15);
+    doc.setFont(undefined,'normal'); doc.setFontSize(9.5); doc.text(T('Data e hora: '+new Date().toLocaleString('pt-BR')),14,22);
+    var y=36;
     gs.forEach(function(g){
       if(y>255){ doc.addPage(); y=20; }
       doc.setFontSize(11); doc.setFont(undefined,'bold');
@@ -28641,24 +28637,24 @@ body:has(#screenHub:not(.hidden)){overflow:hidden !important;overscroll-behavior
       cods.forEach(function(c){var e=dist[c];Object.keys(e.lojas).forEach(function(lc){var extra='';if(e.chassis){var lst=Object.keys(e.chassis).filter(function(ch){return e.chassis[ch]===lc;}).map(function(ch){var inf=(e.chassisInfo||{})[ch]||{};return ch+(inf.cor?' ('+inf.cor+')':'')+(inf.chapa?' '+inf.chapa:'');});if(lst.length)extra=' - Chassi: '+lst.join(', ');}(porLoja[lc]=porLoja[lc]||[]).push({ref:e.ref,cod:e.cod,nome:e.nome+extra,qtd:e.lojas[lc]});});});
       var y=0;
       function cab(){
-        doc.setFillColor(0,0,0);doc.rect(0,0,210,21,'F');doc.setTextColor(255,255,255);
-        doc.setFont('helvetica','bold');doc.setFontSize(11);doc.text(removerAcentos('DISTRIBUICAO DE MERCADORIA'),10,7);
-        doc.setFont('helvetica','normal');doc.setFontSize(7);doc.text('Gerado em: '+dh,200,7,{align:'right'});
-        doc.setFontSize(8);doc.setFont('helvetica','bold');
-        doc.text(removerAcentos('ORIGEM: '+origem),10,12.5);
-        doc.setFont('helvetica','normal');doc.setFontSize(7);
-        doc.text(removerAcentos((tituloConf?'Conferencia: '+tituloConf+'  |  ':'')+(nomeUsuarioConferencia?'Conferido por: '+nomeUsuarioConferencia:'')),10,17.5);
-        doc.setTextColor(0,0,0);y=28;
+        doc.setTextColor(0, 0, 0);
+        doc.setFont('helvetica','bold');doc.setFontSize(19);doc.text(removerAcentos('DISTRIBUICAO DE MERCADORIA'),10,14);
+        doc.setFontSize(9);doc.setFont('helvetica','bold');
+        doc.text(removerAcentos('ORIGEM: '+origem),10,21);
+        doc.setFont('helvetica','normal');doc.setFontSize(8.5);
+        doc.text(removerAcentos((tituloConf?'Conferencia: '+tituloConf+'  |  ':'')+(nomeUsuarioConferencia?'Conferido por: '+nomeUsuarioConferencia:'')),10,26.5);
+        doc.text('Gerado em: '+dh,10,32);
+        doc.setTextColor(0,0,0);y=42;
       }
       function nova(){doc.addPage();cab();}
       cab();
       Object.keys(porLoja).forEach(function(lc){
         if(y>260)nova();
-        doc.setFillColor(230,230,230);doc.rect(10,y-4,190,7,'F');
+        doc.setFillColor(241,243,245);doc.rect(10,y-4,190,7,'F');
         doc.setFont('helvetica','bold');doc.setFontSize(9);
         doc.text(removerAcentos('ORIGEM: '+origem+'   >>   DESTINO: '+nomeDestino(lc)+' '+lc),12,y+1);y+=8;
         doc.setFontSize(7);doc.text('REF',12,y);doc.text('COD',42,y);doc.text('PRODUTO',70,y);doc.text('QTD',196,y,{align:'right'});
-        y+=2;doc.line(10,y,200,y);y+=4;doc.setFont('helvetica','normal');
+        y+=2;doc.setDrawColor(107,114,128);doc.line(10,y,200,y);y+=4;doc.setFont('helvetica','normal');
         var tot=0;
         porLoja[lc].forEach(function(r){
           var ln=doc.splitTextToSize(removerAcentos(String(r.nome||'')),118);
@@ -29155,6 +29151,71 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
     }catch(_){if(ehRaiz(alvo))window.scrollTo(0,0);else alvo.scrollTop=0;}
   });
   setInterval(function(){if(vis)checar();},500);
+})();
+</script>
+
+<script id="estoq-estilo-pdf">
+/* Aparência padrão dos PDFs (protótipo): cabeçalho preto, linhas cinza, linhas OBS em cinza claro,
+   fontes um pouco maiores e mais espaço nas células. Só estilo: dados e lógica não são tocados. */
+(function(){
+  try{
+    var J=window.jspdf&&window.jspdf.jsPDF;
+    if(!J||!J.API||typeof J.API.autoTable!=='function'||J.API.__estoqEstiloPdf)return;
+    var GRAY=[107,114,128], ZEBRA=[241,243,245], F=7.1/6.7;
+    function pad(p,add){
+      if(p==null)return {top:add,right:0.7,bottom:add,left:0.7};
+      if(typeof p==='number')return {top:p+add,right:p,bottom:p+add,left:p};
+      var q={top:(p.top||0)+add,right:p.right||0,bottom:(p.bottom||0)+add,left:p.left||0};
+      return q;
+    }
+    function ehOBS(d){
+      var r=d.row&&d.row.raw;
+      return !!(r&&r[0]&&typeof r[0]==='object'&&String(r[0].content||'').indexOf('OBS')===0);
+    }
+    function estilizar(o){
+      var hs=o.headStyles=Object.assign({},o.headStyles||{});
+      var st=o.styles=Object.assign({},o.styles||{});
+      var fc=hs.fillColor;
+      var escura=Array.isArray(fc)&&fc[0]===0&&fc[1]===0&&fc[2]===0;
+      hs.fillColor=[0,0,0]; hs.textColor=[255,255,255]; hs.fontStyle='bold';
+      hs.lineColor=[0,0,0]; hs.lineWidth=0.2;
+      st.lineColor=GRAY; st.lineWidth=0.19;
+      if(Array.isArray(st.textColor)&&st.textColor[0]<=40)st.textColor=[0,0,0];
+      if(escura){
+        if(hs.fontSize)hs.fontSize=Math.round(hs.fontSize*F*100)/100;
+        if(st.fontSize)st.fontSize=Math.round(st.fontSize*F*100)/100;
+        hs.cellPadding=pad(hs.cellPadding==null?0.7:hs.cellPadding,0.35);
+        st.cellPadding=pad(st.cellPadding==null?0.45:st.cellPadding,0.35);
+        if(o.columnStyles){
+          var cs={};Object.keys(o.columnStyles).forEach(function(k){
+            var c=Object.assign({},o.columnStyles[k]);
+            if(typeof c.fontSize==='number')c.fontSize=Math.round(c.fontSize*F*100)/100;
+            cs[k]=c;
+          });o.columnStyles=cs;
+        }
+      }else if(o.alternateRowStyles){
+        o.alternateRowStyles=Object.assign({},o.alternateRowStyles,{fillColor:ZEBRA});
+      }
+      var prev=o.didParseCell;
+      o.didParseCell=function(d){
+        if(prev)prev.apply(this,arguments);
+        try{
+          if(d.section==='body'&&ehOBS(d)){
+            d.cell.styles.fillColor=ZEBRA;
+            d.cell.styles.textColor=[0,0,0];
+            var p=d.cell.styles.cellPadding;
+            if(p&&typeof p==='object')d.cell.styles.cellPadding={top:(p.top||0)+0.3,right:p.right||0,bottom:(p.bottom||0)+0.4,left:p.left||0};
+          }
+        }catch(_){}
+      };
+    }
+    var orig=J.API.autoTable;
+    J.API.autoTable=function(o){
+      try{ if(o&&typeof o==='object'&&!Array.isArray(o))estilizar(o); }catch(e){ console.warn('estilo PDF:',e); }
+      return orig.apply(this,arguments);
+    };
+    J.API.__estoqEstiloPdf=true;
+  }catch(e){console.warn('estilo PDF indisponível',e);}
 })();
 </script>
 </body>
