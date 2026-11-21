@@ -7439,7 +7439,7 @@ Ex.: Esta moto está com arranhado..." style="width:100%;min-height:130px;resize
                 doc.text(`Pagina ${pg}/${total}`,200,292,{align:'right'});
             }
             const nomeSeguro=pdfTxt(tituloConf).replace(/[^a-z0-9_-]+/gi,'_').replace(/^_+|_+$/g,'').toLowerCase();
-            doc.save(`anotacoes_importantes_${nomeSeguro||'conferencia'}_${agora.toISOString().slice(0,10)}.pdf`);
+            doc.save(`anotacoes_importantes_${nomeSeguro||'conferencia'}_${carimboDataHoraArquivo()}.pdf`);
         }catch(e){
             console.error('PDF Anotações Importantes:',e);
             mostrarAlertaApp('Não foi possível gerar o PDF das anotações.','⚠️');
@@ -16949,7 +16949,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
                 // ate embaixo de FIS. Só a coluna STATUS fica em branco e
                 // fechada, formando um quadro no canto para anotacao manual.
                 body.push([
-                    { content: `OBS: ${removerAcentos(resDif.obs.trim())}`, colSpan: 5, styles: { font: 'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 9.6, halign: 'left', cellPadding: { top: 0.15, right: 0.7, bottom: 0.25, left: 0.7 } } },
+                    { content: `OBS: ${removerAcentos(resDif.obs.trim())}`, colSpan: 5, styles: { font: 'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 6.0, halign: 'left', cellPadding: { top: 0.15, right: 0.7, bottom: 0.25, left: 0.7 } } },
                     ''
                 ]);
             }
@@ -17036,7 +17036,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
             const status0 = conf > sis ? `SOBRA (+${conf-sis})` : `FALTA (-${sis-conf})`;
             if (!chassis.length) { const rd = aplicarResolucaoPDF(conferenciaIdPDF, chaveDifMoto(m.cod,'-'), status0, ''); bodyMotos.push([linhaMoto++, removerAcentos(m.nome||'-'), m.cod||'-','-','-',sis,conf,rd.status]); if (rd.obs) bodyMotos.push([{content:`OBS: ${removerAcentos(rd.obs)}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fontSize: 7.8,halign:'left',cellPadding:{top:0.25,right:1,bottom:0.35,left:1}}}]); }
             else chassis.forEach(c => { if (c.checado) { const rd = aplicarResolucaoPDF(conferenciaIdPDF, chaveDifMoto(m.cod,c.chassi), status0, ''); bodyMotos.push([linhaMoto++,removerAcentos(m.nome||'-'),m.cod||'-',removerAcentos(c.chassi||'-'),removerAcentos(obterChapaMoto(c.chassi,c.chapa)||'-'),sis,conf,rd.status]); if (rd.obs) bodyMotos.push([{content:`OBS: ${removerAcentos(rd.obs)}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fontSize: 7.8,halign:'left',cellPadding:{top:0.25,right:1,bottom:0.35,left:1}}}]); } });
-            if (m.obs && String(m.obs).trim() && !motoTemObsEditada(conferenciaIdPDF, m)) bodyMotos.push([{content:`OBS: ${removerAcentos(m.obs.trim())}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fillColor: [232,232,232], fontSize: 9.6,halign:'left',cellPadding:{top:0.25,right:1.2,bottom:0.45,left:1.2}}}]);
+            if (m.obs && String(m.obs).trim() && !motoTemObsEditada(conferenciaIdPDF, m)) bodyMotos.push([{content:`OBS: ${removerAcentos(m.obs.trim())}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fillColor: [232,232,232], fontSize: 7.5,halign:'left',cellPadding:{top:0.25,right:1.2,bottom:0.45,left:1.2}}}]);
         });
         doc.autoTable({startY:startY+3,margin:{left:10,right:10},head:[['#','Moto / Modelo','Cod.','Chassi','Chapa','Sis','Conf.','Status']],body:bodyMotos,theme:'grid',headStyles:{font:'helvetica',fillColor:[0,0,0],textColor:[255,255,255],fontStyle:'bold',fontSize:8.5,cellPadding:1.2},styles:{font:'helvetica',fontSize:8,cellPadding:1.2,textColor:[20,20,20]},columnStyles:{0:{cellWidth:7},1:{cellWidth:58},2:{cellWidth:15,halign:'center'},3:{cellWidth:40,fontSize:7.2},4:{cellWidth:25,halign:'center',fontSize:7.2},5:{cellWidth:10,halign:'center'},6:{cellWidth:12,halign:'center'},7:{cellWidth:30,halign:'center'}}});
         startY=doc.lastAutoTable.finalY+6;
@@ -17051,7 +17051,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
             const chassis = Array.isArray(m.chassis) ? m.chassis : [];
             if (!chassis.length) { const rd = aplicarResolucaoPDF(conferenciaIdPDF, chaveDifMoto(m.cod,'-'), 'NAO CONFERIDO', ''); bodyMotosNC.push([linhaMotoNC++, removerAcentos(m.nome||'-'), m.cod||'-','-','-',Number(m.sis)||1,0,rd.status]); if (rd.obs) bodyMotosNC.push([{content:`OBS: ${removerAcentos(rd.obs)}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fontSize: 7.8,halign:'left',cellPadding:{top:0.25,right:1,bottom:0.35,left:1}}}]); }
             else chassis.forEach(c => { const rd = aplicarResolucaoPDF(conferenciaIdPDF, chaveDifMoto(m.cod,c.chassi), 'NAO CONFERIDO', ''); bodyMotosNC.push([linhaMotoNC++,removerAcentos(m.nome||'-'),m.cod||'-',removerAcentos(c.chassi||'-'),removerAcentos(obterChapaMoto(c.chassi,c.chapa)||'-'),1,0,rd.status]); if (rd.obs) bodyMotosNC.push([{content:`OBS: ${removerAcentos(rd.obs)}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fontSize: 7.8,halign:'left',cellPadding:{top:0.25,right:1,bottom:0.35,left:1}}}]); });
-            if (m.obs && String(m.obs).trim() && !motoTemObsEditada(conferenciaIdPDF, m)) bodyMotosNC.push([{content:`OBS: ${removerAcentos(m.obs.trim())}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fillColor: [232,232,232], fontSize: 9.6,halign:'left',cellPadding:{top:0.25,right:1.2,bottom:0.45,left:1.2}}}]);
+            if (m.obs && String(m.obs).trim() && !motoTemObsEditada(conferenciaIdPDF, m)) bodyMotosNC.push([{content:`OBS: ${removerAcentos(m.obs.trim())}`,colSpan:8,styles:{font:'helvetica',fontStyle: 'bold',textColor: [0, 0, 0],fillColor: [232,232,232], fontSize: 7.5,halign:'left',cellPadding:{top:0.25,right:1.2,bottom:0.45,left:1.2}}}]);
         });
         doc.autoTable({startY:startY+3,margin:{left:10,right:10},head:[['#','Moto / Modelo','Cod.','Chassi','Chapa','Sis','Conf.','Status']],body:bodyMotosNC,theme:'grid',headStyles:{font:'helvetica',fillColor:[0,0,0],textColor:[255,255,255],fontStyle:'bold',fontSize:8.5,cellPadding:1.2},styles:{font:'helvetica',fontSize:8,cellPadding:1.2,textColor:[20,20,20]},columnStyles:{0:{cellWidth:7},1:{cellWidth:58},2:{cellWidth:15,halign:'center'},3:{cellWidth:40,fontSize:7.2},4:{cellWidth:25,halign:'center',fontSize:7.2},5:{cellWidth:10,halign:'center'},6:{cellWidth:12,halign:'center'},7:{cellWidth:30,halign:'center'}}});
         startY=doc.lastAutoTable.finalY+6;
@@ -17077,7 +17077,7 @@ async function gerarPDFDivergentesHistorico(itensParaImprimir, tituloRelatorio, 
     const nomeSeguro = removerAcentos(String(tituloRelatorio || 'conferencia'))
         .replace(/[^a-z0-9_-]+/gi, '_').replace(/^_+|_+$/g, '').toLowerCase();
     if (incluirAnexos) await adicionarAnexosFotosNotasPDF(doc, conferenciaIdPDF, (registros === 0 ? startY + 15 : startY));
-    doc.save(`diferencas_${nomeSeguro || 'conferencia'}_${agora.toISOString().slice(0,10)}.pdf`);
+    doc.save(`diferencas_${nomeSeguro || 'conferencia'}_${carimboDataHoraArquivo()}.pdf`);
 }
 
 // ---------- Resumo de Diferenças em Texto (bloco de notas editavel) ----------
@@ -17393,6 +17393,7 @@ async function adicionarAnexosFotosNotasPDF(doc, conferenciaId, startYRef){
     }catch(e){console.warn('Anexos fotograficos PDF:',e);return startYRef;}
 }
 
+function carimboDataHoraArquivo(d){ d=d||new Date(); var p=function(n){return String(n).padStart(2,'0');}; return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate())+'_'+p(d.getHours())+'-'+p(d.getMinutes())+'-'+p(d.getSeconds()); }
 async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisParaImprimir = moveisData, motosParaImprimir = motosData, airesParaImprimir = airesData, sofasParaImprimir = sofasData, conferenciaIdPDF = (typeof idConferenciaAtual!=='undefined'?idConferenciaAtual:null), incluirAnexos = false) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -17693,7 +17694,7 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
                 // ate embaixo de FIS. Só a coluna STATUS fica em branco e
                 // fechada, formando um quadro no canto para anotacao manual.
                 body.push([
-                    { content: `OBS: ${removerAcentos(resDif.obs.trim())}`, colSpan: 5, styles: { font: 'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 9.6, halign: 'left', cellPadding: { top: 0.15, right: 0.7, bottom: 0.25, left: 0.7 } } },
+                    { content: `OBS: ${removerAcentos(resDif.obs.trim())}`, colSpan: 5, styles: { font: 'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 6.0, halign: 'left', cellPadding: { top: 0.15, right: 0.7, bottom: 0.25, left: 0.7 } } },
                     ''
                 ]);
             }
@@ -17821,18 +17822,18 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
                         statusMoto
                     ]);
                     if (rdMoto.obs) body.push([
-                        { content: `OBS: ${removerAcentos(rdMoto.obs)}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 9.6, halign:'left', cellPadding:{top:0.12,right:0.7,bottom:0.22,left:0.7} } }
+                        { content: `OBS: ${removerAcentos(rdMoto.obs)}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 5.6, halign:'left', cellPadding:{top:0.12,right:0.7,bottom:0.22,left:0.7} } }
                     ]);
                     if (obsChassi && obterObsEditadaDif(conferenciaIdPDF, chaveDifMoto(moto.cod, c && c.chassi)) === null) body.push([
-                        { content: `OBS CHASSI: ${removerAcentos(obsChassi)}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 9.6, halign:'left', cellPadding:{top:0.12,right:0.7,bottom:0.22,left:0.7} } }
+                        { content: `OBS CHASSI: ${removerAcentos(obsChassi)}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 5.6, halign:'left', cellPadding:{top:0.12,right:0.7,bottom:0.22,left:0.7} } }
                     ]);
                 });
             }
             if (obsResolvidoMoto) body.push([
-                { content: `OBS: ${removerAcentos(obsResolvidoMoto)}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 9.6, halign:'left', cellPadding:{top:0.15,right:0.7,bottom:0.25,left:0.7} } }
+                { content: `OBS: ${removerAcentos(obsResolvidoMoto)}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 5.6, halign:'left', cellPadding:{top:0.15,right:0.7,bottom:0.25,left:0.7} } }
             ]);
             if (moto.obs && String(moto.obs).trim() !== '' && !motoTemObsEditada(conferenciaIdPDF, moto)) body.push([
-                { content: `OBS: ${removerAcentos(moto.obs.trim())}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 9.6, halign:'left', cellPadding:{top:0.15,right:0.7,bottom:0.25,left:0.7} } }
+                { content: `OBS: ${removerAcentos(moto.obs.trim())}`, colSpan: 9, styles: { font:'helvetica', fontStyle: 'bold', textColor: [0, 0, 0], fillColor: [232,232,232], fontSize: 5.6, halign:'left', cellPadding:{top:0.15,right:0.7,bottom:0.25,left:0.7} } }
             ]);
         });
         doc.autoTable({
@@ -17894,7 +17895,12 @@ async function gerarPDFCustomizado(itensParaImprimir, tituloRelatorio, moveisPar
     });
 
     if (incluirAnexos) await adicionarAnexosFotosNotasPDF(doc, conferenciaIdPDF, (doc.lastAutoTable && doc.lastAutoTable.finalY) || 14);
-    doc.save(`relatorio_estoque_${agora.toISOString().slice(0,10)}.pdf`);
+    {
+        const _p2 = n => String(n).padStart(2,'0');
+        const _dh = `${agora.getFullYear()}-${_p2(agora.getMonth()+1)}-${_p2(agora.getDate())}_${_p2(agora.getHours())}-${_p2(agora.getMinutes())}-${_p2(agora.getSeconds())}`;
+        const _tit = removerAcentos(String(tituloRelatorio || 'conferencia')).replace(/[^a-z0-9_-]+/gi, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').toLowerCase().slice(0, 60);
+        doc.save(`relatorio_estoque_${_tit || 'conferencia'}_${_dh}.pdf`);
+    }
 }
 
 function gerarPDFConferenciaProvedor(registro) {
@@ -18032,7 +18038,7 @@ function gerarPDFConferenciaProvedor(registro) {
                 colSpan: 6,
                 styles: {
                     font: 'helvetica', fontStyle: 'bold', textColor: [0, 0, 0],
-                    fillColor: [232,232,232], fontSize: 9.6, halign: 'left',
+                    fillColor: [232,232,232], fontSize: 5.8, halign: 'left',
                     cellPadding: {top:0.15,right:0.7,bottom:0.25,left:0.7}
                 }
             }, '']];
@@ -18079,7 +18085,7 @@ function gerarPDFConferenciaProvedor(registro) {
     doc.text(removerAcentos('Responsavel da conferencia 1'),55,y+5,{align:'center'});
     doc.text(removerAcentos('Responsavel da conferencia 2'),155,y+5,{align:'center'});
 
-    const nomeArquivo = `conferencia_provedor_${new Date().toISOString().slice(0,10)}.pdf`;
+    const nomeArquivo = `conferencia_provedor_${carimboDataHoraArquivo()}.pdf`;
     doc.save(nomeArquivo);
 }
 
@@ -28663,7 +28669,7 @@ body:has(#screenHub:not(.hidden)){overflow:hidden !important;overscroll-behavior
         });
         doc.setFont('helvetica','bold');doc.text('Total: '+tot,196,y+1,{align:'right'});doc.setFont('helvetica','normal');y+=10;
       });
-      var nome='distribuicao-'+agora.getFullYear()+'-'+String(agora.getMonth()+1).padStart(2,'0')+'-'+String(agora.getDate()).padStart(2,'0')+'.pdf';
+      var nome='distribuicao_'+carimboDataHoraArquivo()+'.pdf';
       doc.save(nome);
     }catch(e){console.error('PDF distribuição:',e);mostrarAlertaApp('Não foi possível gerar o PDF.','⚠️');}
   };
