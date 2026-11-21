@@ -7714,8 +7714,7 @@ Ex.: Esta moto está com arranhado..." style="width:100%;min-height:130px;resize
         const termo=titulo||nome||cod||ref;
         if(!termo){mostrarAlertaApp('Informe o nome do produto para buscar uma imagem.','🌐');return;}
         try{localStorage.setItem('estoque_nota_retorno_id',String(n.id||''));}catch(_){ }
-        marcarRetornoExterno();
-        abrirUrlExterna(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(termo)}`);
+        abrirBuscaImagemRapido(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(termo)}`);
     };
     window.salvarNotaAtual=async function(){
         const n=window._notaAtual;if(!n)return;
@@ -12552,6 +12551,20 @@ function buscarImagemProdutoCard(origem, index) {
         console.error('Busca de imagem do card falhou:', e);
         try { mostrarAlertaApp('Não foi possível abrir a busca de imagem: ' + (e && e.message ? e.message : e), '🌐'); } catch (_) {}
     }
+}
+
+// Abre uma pesquisa externa (ex.: Google Imagens) de forma rápida: marcação leve do retorno,
+// abertura imediata do navegador (ainda dentro do toque) e só depois o salvamento completo.
+function abrirBuscaImagemRapido(url) {
+    try {
+        sessionStorage.setItem('estoque_retorno_externo', '1');
+        sessionStorage.setItem('estoque_retorno_externo_ts', String(Date.now()));
+        localStorage.removeItem('estoque_retorno_externo');
+        localStorage.removeItem('estoque_retorno_externo_ts');
+        localStorage.setItem(CHAVE_RETORNO_EXTERNO_PERSISTENTE, JSON.stringify({ ts: Date.now(), tela: telaPrincipalAtivaId() }));
+    } catch (e) { console.warn('marcação de retorno falhou:', e); }
+    abrirUrlExterna(url);
+    setTimeout(() => { try { autoSalvar(); } catch (e) { console.warn('autoSalvar falhou:', e); } }, 400);
 }
 
 function abrirUrlExterna(url) {
@@ -19230,9 +19243,8 @@ function pesquisarImagemStockEspecial() {
         mostrarAlertaApp('O item não possui informações para pesquisar.', 'ℹ️');
         return;
     }
-    marcarRetornoExterno();
     const url = `https://www.google.com/search?tbm=isch&q=${encodeURIComponent(termoBusca)}`;
-    abrirUrlExterna(url);
+    abrirBuscaImagemRapido(url);
 }
 
 function salvarEdicaoStockEspecial() {
@@ -22681,9 +22693,8 @@ body.is-tablet #repoSugModal .rs-lista{max-height:none;flex:1 1 auto;min-height:
     var b=S().base(), it=null; for(var i=0;i<b.length;i++){ if(String(b[i].it.cod)===String(c)){ it=b[i].it; break; } }
     var termo=it?String(it.nome||it.cod||it.ref||'').trim():''; if(!termo){ aviso('O item não tem informação para pesquisar.'); return; }
     try{ localStorage.removeItem('estoque_nota_retorno_id'); }catch(_){}
-    try{ if(typeof marcarRetornoExterno==='function') marcarRetornoExterno(); }catch(_){}
     var url='https://www.google.com/search?tbm=isch&q='+encodeURIComponent(termo);
-    if(typeof abrirUrlExterna==='function') abrirUrlExterna(url); else window.open(url,'_blank');
+    if(typeof abrirBuscaImagemRapido==='function') abrirBuscaImagemRapido(url); else if(typeof abrirUrlExterna==='function') abrirUrlExterna(url); else window.open(url,'_blank');
   }
   function usuario(){ try{ return String((typeof nomeUsuarioConferencia!=='undefined'&&nomeUsuarioConferencia)||localStorage.getItem('estoque_nome_usuario')||'').trim(); }catch(e){ return ''; } }
   function aviso(t){ if(typeof mostrarAlertaApp==='function') mostrarAlertaApp(t,'📤'); else alert(t); }
