@@ -12536,8 +12536,18 @@ function buscarImagemProdutoCard(origem, index) {
         }
         // A busca parte do card (não de uma anotação): não reabrir nenhuma anotação ao voltar.
         try { localStorage.removeItem('estoque_nota_retorno_id'); } catch (_) {}
-        try { marcarRetornoExterno(); } catch (e) { console.warn('marcarRetornoExterno falhou:', e); }
+        // 1) Marca o retorno de forma leve (instantâneo). 2) Abre o navegador JÁ, ainda dentro do toque.
+        // 3) Só depois salva o estado completo. O salvamento pesado antes da abertura (histórico,
+        // fotos, todos os itens) atrasava o pedido e o Android ignorava a abertura do navegador.
+        try {
+            sessionStorage.setItem('estoque_retorno_externo', '1');
+            sessionStorage.setItem('estoque_retorno_externo_ts', String(Date.now()));
+            localStorage.removeItem('estoque_retorno_externo');
+            localStorage.removeItem('estoque_retorno_externo_ts');
+            localStorage.setItem(CHAVE_RETORNO_EXTERNO_PERSISTENTE, JSON.stringify({ ts: Date.now(), tela: telaPrincipalAtivaId() }));
+        } catch (e) { console.warn('marcação de retorno falhou:', e); }
         abrirUrlExterna(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(termo)}`);
+        setTimeout(() => { try { autoSalvar(); } catch (e) { console.warn('autoSalvar falhou:', e); } }, 400);
     } catch (e) {
         console.error('Busca de imagem do card falhou:', e);
         try { mostrarAlertaApp('Não foi possível abrir a busca de imagem: ' + (e && e.message ? e.message : e), '🌐'); } catch (_) {}
