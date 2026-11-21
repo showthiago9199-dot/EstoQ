@@ -12587,6 +12587,12 @@ function abrirUrlExterna(url) {
         );
 
         if (emWebView) {
+            // Mesmo caminho do Estoque Geral (que funciona neste APK): nova aba via window.open.
+            // O endereço intent:// só é usado se o window.open for bloqueado.
+            try {
+                const nova = window.open(destino.href, '_blank');
+                if (nova) return;
+            } catch (_) {}
             const esquema = destino.protocol.slice(0, -1);
             const caminho = destino.host + destino.pathname + destino.search + destino.hash;
             const intentUrl = 'intent://' + caminho +
