@@ -12523,18 +12523,25 @@ function restaurarTelaAposRetornoExterno(telaSalva, editIndexSalvo) {
 
 
 function buscarImagemProdutoCard(origem, index) {
-    // Mesmas listas usadas pelo botão 📝 do card (abrirNotaDiretaProduto).
-    const mapas = { sistema: estoque, moveis: moveisData, aires: airesData, sofas: sofasData, motos: motosData };
-    const item = (mapas[origem] || [])[Number(index)];
-    const termo = item ? String(item.nome || item.cod || item.ref || '').trim() : '';
-    if (!termo) {
-        mostrarAlertaApp('O item não possui informações para pesquisar.', '🌐');
-        return;
+    // Usado pelo 🌐 dos cards (estoque geral, Móveis, Sofás e Aires).
+    // Cada passo é protegido: qualquer falha secundária (salvar estado, marcar retorno)
+    // não pode impedir a abertura da pesquisa de imagem.
+    try {
+        const mapas = { sistema: estoque, moveis: moveisData, aires: airesData, sofas: sofasData, motos: motosData };
+        const item = (mapas[origem] || [])[Number(index)];
+        const termo = item ? String(item.nome || item.descricao || item.produto || item.cod || item.ref || '').trim() : '';
+        if (!termo) {
+            mostrarAlertaApp('O item não possui informações para pesquisar.', '🌐');
+            return;
+        }
+        // A busca parte do card (não de uma anotação): não reabrir nenhuma anotação ao voltar.
+        try { localStorage.removeItem('estoque_nota_retorno_id'); } catch (_) {}
+        try { marcarRetornoExterno(); } catch (e) { console.warn('marcarRetornoExterno falhou:', e); }
+        abrirUrlExterna(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(termo)}`);
+    } catch (e) {
+        console.error('Busca de imagem do card falhou:', e);
+        try { mostrarAlertaApp('Não foi possível abrir a busca de imagem: ' + (e && e.message ? e.message : e), '🌐'); } catch (_) {}
     }
-    // A busca parte do card (não de uma anotação): não reabrir nenhuma anotação ao voltar.
-    try { localStorage.removeItem('estoque_nota_retorno_id'); } catch (_) {}
-    marcarRetornoExterno();
-    abrirUrlExterna(`https://www.google.com/search?tbm=isch&q=${encodeURIComponent(termo)}`);
 }
 
 function abrirUrlExterna(url) {
@@ -29208,6 +29215,24 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
           }
         }catch(_){}
       };
+    }
+    /* Emojis e símbolos fora do Latin-1 (ex.: 📦 no título) quebram a fonte Helvetica do jsPDF
+       e deixam o texto torto e espaçado. Remove só na hora de desenhar; os dados não mudam. */
+    var RE_EMOJI=/[\u{1F000}-\u{1FFFF}\u{2190}-\u{2BFF}\u{FE0F}\u{200D}\u{20E3}]/gu;
+    function limpar(v){
+      if(typeof v==='string')return v.replace(RE_EMOJI,'').replace(/ {2,}/g,' ');
+      if(Array.isArray(v))return v.map(limpar);
+      return v;
+    }
+    var txOrig=J.API.text;
+    J.API.text=function(){
+      var a=Array.prototype.slice.call(arguments);
+      try{ a[0]=limpar(a[0]); }catch(_){}
+      return txOrig.apply(this,a);
+    };
+    var swOrig=J.API.getTextWidth;
+    if(typeof swOrig==='function'){
+      J.API.getTextWidth=function(t){ var a=Array.prototype.slice.call(arguments); try{a[0]=limpar(a[0]);}catch(_){} return swOrig.apply(this,a); };
     }
     var orig=J.API.autoTable;
     J.API.autoTable=function(o){
