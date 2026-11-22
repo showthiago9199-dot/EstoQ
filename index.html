@@ -29251,12 +29251,11 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
       if(Array.isArray(v))return v.map(limpar);
       return v;
     }
-    var txOrig=J.API.text;
-    J.API.text=function(){
-      var a=Array.prototype.slice.call(arguments);
-      try{ a[0]=limpar(a[0]); }catch(_){}
-      return txOrig.apply(this,a);
-    };
+    /* jsPDF 2.5.1 não tem text em J.API (ele é criado dentro de cada documento), então o wrapper antigo
+       sobrescrevia doc.text com txOrig indefinido e quebrava TODOS os PDFs. Usa o evento preProcessText. */
+    J.API.events.push(['preProcessText',function(o){
+      try{ if(o&&o.text!=null) o.text=limpar(o.text); }catch(_){}
+    }]);
     var swOrig=J.API.getTextWidth;
     if(typeof swOrig==='function'){
       J.API.getTextWidth=function(t){ var a=Array.prototype.slice.call(arguments); try{a[0]=limpar(a[0]);}catch(_){} return swOrig.apply(this,a); };
