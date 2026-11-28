@@ -29376,11 +29376,10 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
 
   window.ccCompartilhar=function(){
     if(!temConferencia()){ alerta('Não há conferência aberta para compartilhar. Inicie uma conferência primeiro.','⚠️'); return; }
-    if(modoConferenciaEspecificaAtivo){ alerta('Por enquanto só dá para compartilhar a conferência principal, não as específicas.','⚠️'); return; }
     if(!idConferenciaAtual) idConferenciaAtual='conf_'+Date.now();
     var meta={shareId:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), deviceId:deviceId(), base:contagens(), baseManual:chavesManuais(), remotos:{}};
     var dados={tipo:'estoq_conferencia_compartilhada',versao:1,shareId:meta.shareId,de:nomeUsr(),deviceId:meta.deviceId,geradoEm:new Date().toISOString(),
-      titulo:tituloConferenciaAtual||'',dataInicio:dataInicioConferencia||'',dataHoraPlanilha:dataHoraPlanilhaImportada||'',grupoNome:nomeGrupo(),
+      titulo:tituloConferenciaAtual||'',especifica:!!modoConferenciaEspecificaAtivo,provedor:!!modoConferenciaProvedorAtivo,motosPendentes:(modoConferenciaEspecificaAtivo&&Array.isArray(motosImportadasPendentes))?motosImportadasPendentes:[],dataInicio:dataInicioConferencia||'',dataHoraPlanilha:dataHoraPlanilhaImportada||'',grupoNome:nomeGrupo(),
       loja:lojaSelecionadaConferencia||'',lojaNome:lojaSelecionadaConferenciaNome||'',
       itens:estoque,moveis:moveisData,motos:motosData,aires:airesData,sofas:sofasData,
       motosChapas:{mapa:Object.fromEntries(Array.from(mapaChapasMotos.entries())),nomeArquivo:nomeArquivoChapasMotos||''},
@@ -29412,7 +29411,6 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
 
   window.ccEscolherArquivo=function(modo){
     if(modo==='res'&&!temConferencia()){ alerta('Abra a conferência primeiro (a mesma que foi compartilhada) e depois carregue o resultado.','⚠️'); return; }
-    if(modo==='conf'&&modoConferenciaEspecificaAtivo){ alerta('Saia da conferência específica antes de receber outra conferência.','⚠️'); return; }
     modoArq=modo;
     var i=document.getElementById('ccArquivo'); i.value=''; i.click();
   };
@@ -29423,7 +29421,10 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
       var d=null; try{ d=JSON.parse(String(r.result||'')); }catch(_){ alerta('Esse arquivo não é válido.','⚠️'); return; }
       if(modoArq==='conf'){
         if(!d||d.tipo!=='estoq_conferencia_compartilhada'){ alerta('Esse arquivo não é uma conferência compartilhada.','⚠️'); return; }
-        if(temConferencia()){
+        if(!d.especifica&&modoConferenciaEspecificaAtivo){ alerta('Saia da conferência específica ou por provedor antes de receber uma conferência principal.','⚠️'); return; }
+        // Recebendo uma específica: a principal aberta fica guardada, só uma específica já aberta é substituída
+        var substitui=d.especifica?(modoConferenciaEspecificaAtivo&&temConferencia()):temConferencia();
+        if(substitui){
           confirmarAcao('Já existe uma conferência aberta. Receber a nova vai substituí-la — o que não foi salvo será perdido. Continuar?',function(ok){ if(ok!==false) escolherPasta(d); },{titulo:'Receber conferência',textoConfirmar:'Receber',perigo:true});
         } else escolherPasta(d);
       } else {
@@ -29447,11 +29448,28 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
   };
   function receber(d,grupoId){
     try{
+      if(d.especifica){
+        if(!modoConferenciaEspecificaAtivo){
+          estadoConferenciaPrincipalSuspenso={
+            estoque:JSON.parse(JSON.stringify(Array.isArray(estoque)?estoque:[])),moveisData:JSON.parse(JSON.stringify(Array.isArray(moveisData)?moveisData:[])),
+            motosData:JSON.parse(JSON.stringify(Array.isArray(motosData)?motosData:[])),airesData:JSON.parse(JSON.stringify(Array.isArray(airesData)?airesData:[])),
+            sofasData:JSON.parse(JSON.stringify(Array.isArray(sofasData)?sofasData:[])),motosImportadasPendentes:JSON.parse(JSON.stringify(Array.isArray(motosImportadasPendentes)?motosImportadasPendentes:[])),
+            mapaChapasMotos:new Map(mapaChapasMotos),nomeArquivoChapasMotos:nomeArquivoChapasMotos,idConferenciaAtual:idConferenciaAtual,grupoConferenciaAtual:grupoConferenciaAtual,
+            tituloConferenciaAtual:tituloConferenciaAtual,dataInicioConferencia:dataInicioConferencia,activeTab:activeTab,estadoContinuarSalvo:estadoContinuarSalvo
+          };
+          try{ salvarSnapshotPrincipalSuspenso(); }catch(_){}
+        }
+        modoConferenciaEspecificaAtivo=true; modoConferenciaProvedorAtivo=!!d.provedor;
+      }
       estoque=Array.isArray(d.itens)?d.itens:[]; moveisData=Array.isArray(d.moveis)?d.moveis:[]; motosData=Array.isArray(d.motos)?d.motos:[];
       airesData=Array.isArray(d.aires)?d.aires:[]; sofasData=Array.isArray(d.sofas)?d.sofas:[];
-      motosImportadasPendentes=[]; stockEspecialAtivo=null;
+      motosImportadasPendentes=d.especifica&&Array.isArray(d.motosPendentes)?d.motosPendentes:[]; stockEspecialAtivo=null;
+      if(d.especifica){
+        try{ if(typeof salvarLS==='function') salvarLS('estoque_especifica_motos_importadas',JSON.stringify(motosImportadasPendentes)); }catch(_){}
+        try{ if(typeof especificaEstadoCarga==='object'&&especificaEstadoCarga){ especificaEstadoCarga.estoque=d.loja||''; especificaEstadoCarga.pasta=grupoId||''; } }catch(_){}
+      }
       mapaChapasMotos=new Map(Object.entries((d.motosChapas&&d.motosChapas.mapa)||{})); nomeArquivoChapasMotos=(d.motosChapas&&d.motosChapas.nomeArquivo)||'';
-      idConferenciaAtual='conf_'+Date.now(); tituloConferenciaAtual=d.titulo||('Conferencia '+new Date().toLocaleDateString('pt-BR'));
+      idConferenciaAtual=(d.provedor?'conf_provedor_':(d.especifica?'conf_especifica_':'conf_'))+Date.now(); tituloConferenciaAtual=d.titulo||('Conferencia '+new Date().toLocaleDateString('pt-BR'));
       dataInicioConferencia=d.dataInicio||new Date().toISOString(); dataHoraPlanilhaImportada=d.dataHoraPlanilha||'';
       lojaSelecionadaConferencia=d.loja||''; lojaSelecionadaConferenciaNome=d.lojaNome||'';
       grupoConferenciaAtual=grupoId||null;
@@ -29461,7 +29479,7 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
       ccFechar();
       mostrarTelaComTransicao('screenCheck');
       renderItems();
-      alerta('Conferência recebida'+(d.de?' de '+d.de:'')+' ('+estoque.length+' itens). Agora é só conferir a sua parte.','📥');
+      alerta('Conferência'+(d.provedor?' por provedor':(d.especifica?' específica':''))+' recebida'+(d.de?' de '+d.de:'')+' ('+estoque.length+' itens). Agora é só conferir a sua parte.','📥');
     }catch(e){ console.error(e); alerta('Não foi possível abrir essa conferência.','⚠️'); }
   }
 
