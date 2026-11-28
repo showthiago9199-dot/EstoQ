@@ -1,0 +1,25 @@
+name: Criar chave
+on: workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  chave:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Gerar chave
+        run: |
+          rm -f estoq.keystore
+          keytool -genkeypair -keystore estoq.keystore -alias estoq -keyalg RSA -keysize 2048 -validity 10000 -storetype PKCS12 -storepass estoq2026 -keypass estoq2026 -dname "CN=EstoQ, O=EstoQ, C=BR"
+          keytool -list -keystore estoq.keystore -storepass estoq2026
+
+      - name: Salvar chave no repositorio
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add -f estoq.keystore
+          git commit -m "Chave de assinatura"
+          git push
