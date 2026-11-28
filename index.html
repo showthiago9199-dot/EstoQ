@@ -6762,6 +6762,12 @@ try {
                 </div>
             </div>
             <div class="settings-gear-section">
+                <div class="settings-gear-label">Conferência compartilhada</div>
+                <div class="settings-gear-options">
+                    <button type="button" class="settings-gear-option" style="grid-column:1/-1" onclick="fecharConfiguracoesApp();ccAbrir();">🤝 Conferir em dois celulares</button>
+                </div>
+            </div>
+            <div class="settings-gear-section">
                 <div class="settings-gear-label">Dados</div>
                 <div class="settings-gear-options">
                     <button type="button" class="settings-gear-option" style="grid-column:1/-1" onclick="abrirModalCarregarDados()">📂 Carregar dados</button>
@@ -13065,6 +13071,10 @@ function selecionarGrupoParaConferencia(grupoId) {
         if (typeof provedorAplicarPastaSelecionada === 'function') {
             provedorAplicarPastaSelecionada(nomeGrupoEscolhido);
         }
+        return;
+    }
+    if (grupoModalAlvoInput === '__compartilhada_pasta__') {
+        if (typeof window.ccAplicarPasta === 'function') window.ccAplicarPasta(grupoConferenciaAtual);
         return;
     }
 
@@ -29267,6 +29277,246 @@ body.dark-mode .dif-tab.ativa{color:#fff;}
     };
     J.API.__estoqEstiloPdf=true;
   }catch(e){console.warn('estilo PDF indisponível',e);}
+})();
+</script>
+<style id="conf-compartilhada-css">
+#modalConfComp .modal-content{max-width:520px;width:calc(100% - 28px);border-radius:22px;padding:16px;}
+#modalConfComp .cc-sub{font-size:.78rem;color:var(--text-muted);margin:0 0 12px;line-height:1.35}
+#modalConfComp .cc-sec{font-size:.72rem;font-weight:800;letter-spacing:.04em;color:var(--text-muted);margin:12px 0 6px}
+#modalConfComp .cc-btn{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:12px;margin:0 0 8px;border-radius:14px;border:1px solid var(--input-border);background:var(--card-bg);color:var(--text-color);font-size:.88rem;font-weight:800;cursor:pointer}
+#modalConfComp .cc-btn small{display:block;font-weight:500;color:var(--text-muted);font-size:.72rem;margin-top:2px}
+#modalConfComp .cc-btn:active{transform:scale(.99)}
+#modalConfComp .cc-info{font-size:.76rem;color:var(--text-muted);margin-top:6px}
+</style>
+<div class="modal-overlay" id="modalConfComp" onclick="if(event.target===this) ccFechar()">
+  <div class="modal-content">
+    <div class="ro-m-cab"><span>Conferência compartilhada</span><button type="button" class="ro-m-x" onclick="ccFechar()" aria-label="Fechar">✕</button></div>
+    <p class="cc-sub">Duas pessoas conferem a mesma loja, cada uma no seu celular, e depois somam as contagens. Os arquivos podem ser enviados pelo WhatsApp.</p>
+    <div class="cc-sec">1 · NO COMEÇO</div>
+    <button type="button" class="cc-btn" onclick="ccCompartilhar()"><span>📤</span><span>Compartilhar conferência atual<small>Envia a conferência igual está agora, com o mesmo saldo do sistema.</small></span></button>
+    <button type="button" class="cc-btn" onclick="ccEscolherArquivo('conf')"><span>📥</span><span>Receber conferência<small>Abre a conferência enviada pelo colega, com o saldo dele.</small></span></button>
+    <div class="cc-sec">2 · NO FIM</div>
+    <button type="button" class="cc-btn" onclick="ccEnviarResultado()"><span>📨</span><span>Enviar meu resultado<small>Envia só o que você contou.</small></span></button>
+    <button type="button" class="cc-btn" onclick="ccEscolherArquivo('res')"><span>🧮</span><span>Carregar resultado do colega<small>Soma a contagem dele na sua conferência.</small></span></button>
+    <div class="cc-info" id="ccInfo"></div>
+    <input type="file" id="ccArquivo" accept=".json,application/json" style="display:none !important" onchange="ccLerArquivo(this)">
+  </div>
+</div>
+<script id="conf-compartilhada-js">
+(function(){
+  var modoArq=null;
+  function alerta(m,i){ try{ mostrarAlertaApp(m,i||'ℹ️'); }catch(_){ alert(m); } }
+  function cod(it){ return String(it&&it.cod!=null?it.cod:'').trim(); }
+  function ehManual(it){ return !!(it&&(it.isAdicionadoManual||it.naoEncontrado||it.cat==='ADICIONADO')); }
+  function derivado(it){ return !!(it&&(it.__stockEspecialOrigem||(it.volumes&&Object.keys(it.volumes).length))); }
+  function chaveManual(it){ return String(it.idManualMovel||it.idManualStockEspecial||it.idManualMoto||'')||(cod(it)+'|'+String(it.nome||'')+'|'+String(it.dataConferencia||'')+'|'+String(it.chassi||'')); }
+  function deviceId(){ var d=''; try{ d=localStorage.getItem('estoq_device_id')||''; if(!d){ d='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); localStorage.setItem('estoq_device_id',d); } }catch(_){ d='d'+Date.now().toString(36); } return d; }
+  function nomeUsr(){ try{ return String((typeof nomeUsuarioConferencia!=='undefined'&&nomeUsuarioConferencia)||localStorage.getItem('estoque_nome_usuario')||'').trim(); }catch(_){ return ''; } }
+  function metaKey(){ return 'estoq_comp_'+(idConferenciaAtual||''); }
+  function lerMeta(){ try{ return JSON.parse(localStorage.getItem(metaKey())||'null'); }catch(_){ return null; } }
+  function salvaMeta(m){ try{ localStorage.setItem(metaKey(),JSON.stringify(m)); }catch(e){ console.warn(e); } }
+  function temConferencia(){ return Array.isArray(estoque)&&estoque.length>0; }
+
+  // contagens "numéricas" que podem ser somadas entre aparelhos
+  function contagens(){
+    var m={}, vistos={};
+    (estoque||[]).forEach(function(it){
+      if(!it||ehManual(it)||derivado(it)) return;
+      var c=cod(it); if(!c||vistos[c]) return; vistos[c]=1;
+      var f=Number(it.fisico)||0; if(f) m['e|'+c]=f;
+    });
+    var emEspecial={};
+    (estoque||[]).forEach(function(it){ if(it&&it.__stockEspecialOrigem) emEspecial[cod(it)]=1; });
+    [['m',moveisData],['a',airesData],['s',sofasData]].forEach(function(p){
+      var v2={};
+      (p[1]||[]).forEach(function(it){
+        if(!it||it.isAdicionadoManual) return;
+        var c=cod(it); if(!c||v2[c]) return; v2[c]=1;
+        if(p[0]==='m'&&emEspecial[c]) return;
+        var v=it.volumes||{};
+        Object.keys(v).forEach(function(k){ var n=Number(v[k])||0; if(n) m[p[0]+'|'+c+'|'+k]=n; });
+      });
+    });
+    return m;
+  }
+  function listaManuais(){
+    var o={e:[],m:[],a:[],s:[],t:[]};
+    (estoque||[]).forEach(function(it){ if(it&&ehManual(it)) o.e.push(it); });
+    (moveisData||[]).forEach(function(it){ if(it&&it.isAdicionadoManual) o.m.push(it); });
+    (airesData||[]).forEach(function(it){ if(it&&it.isAdicionadoManual) o.a.push(it); });
+    (sofasData||[]).forEach(function(it){ if(it&&it.isAdicionadoManual) o.s.push(it); });
+    (motosData||[]).forEach(function(it){ if(it&&it.isAdicionadoManual) o.t.push(it); });
+    return o;
+  }
+  function chavesManuais(){ var o=listaManuais(), r=[]; Object.keys(o).forEach(function(t){ o[t].forEach(function(it){ r.push(t+'|'+chaveManual(it)); }); }); return r; }
+  function soma(meta){
+    var r={}; Object.keys(meta.remotos||{}).forEach(function(dv){ var d=(meta.remotos[dv]||{}).d||{}; Object.keys(d).forEach(function(k){ r[k]=(r[k]||0)+d[k]; }); }); return r;
+  }
+  function uniao(){ var r={}; for(var i=0;i<arguments.length;i++){ Object.keys(arguments[i]||{}).forEach(function(k){ r[k]=1; }); } return Object.keys(r); }
+  function meuDelta(meta){
+    var cur=contagens(), rem=soma(meta), base=meta.base||{}, d={};
+    uniao(cur,base,rem).forEach(function(k){ var v=(cur[k]||0)-(base[k]||0)-(rem[k]||0); if(v) d[k]=v; });
+    return d;
+  }
+  function dataStr(){ var a=new Date(),p=function(n){return String(n).padStart(2,'0');}; return a.getFullYear()+'-'+p(a.getMonth()+1)+'-'+p(a.getDate())+'-'+p(a.getHours())+p(a.getMinutes()); }
+  function nomeArq(pref){ var t=String(tituloConferenciaAtual||'conferencia').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'').slice(0,30)||'conferencia'; return pref+'-'+t+'-'+dataStr()+'.json'; }
+  function baixa(obj,nome){ var blob=new Blob([JSON.stringify(obj)],{type:'application/json'}); window.estoqSalvarBlob(blob,nome); }
+  function nomeGrupo(){ try{ var g=obterGrupos().find(function(x){ return x.id===grupoConferenciaAtual; }); return g?g.nome:''; }catch(_){ return ''; } }
+
+  window.ccAbrir=function(){
+    var m=temConferencia()?lerMeta():null, i=document.getElementById('ccInfo');
+    if(i){
+      if(m&&m.shareId){ var n=Object.keys(m.remotos||{}).length; i.textContent='Conferência compartilhada ativa'+(n?(' · resultado de '+n+' colega'+(n>1?'s':'')+' já somado'):'')+'.'; }
+      else i.textContent='';
+    }
+    document.getElementById('modalConfComp').classList.add('active');
+    try{ atualizarBloqueioModais(); }catch(_){}
+  };
+  window.ccFechar=function(){ document.getElementById('modalConfComp').classList.remove('active'); try{ atualizarBloqueioModais(); }catch(_){} };
+
+  window.ccCompartilhar=function(){
+    if(!temConferencia()){ alerta('Não há conferência aberta para compartilhar. Inicie uma conferência primeiro.','⚠️'); return; }
+    if(modoConferenciaEspecificaAtivo){ alerta('Por enquanto só dá para compartilhar a conferência principal, não as específicas.','⚠️'); return; }
+    if(!idConferenciaAtual) idConferenciaAtual='conf_'+Date.now();
+    var meta={shareId:'s'+Date.now().toString(36)+Math.random().toString(36).slice(2,5), deviceId:deviceId(), base:contagens(), baseManual:chavesManuais(), remotos:{}};
+    var dados={tipo:'estoq_conferencia_compartilhada',versao:1,shareId:meta.shareId,de:nomeUsr(),deviceId:meta.deviceId,geradoEm:new Date().toISOString(),
+      titulo:tituloConferenciaAtual||'',dataInicio:dataInicioConferencia||'',dataHoraPlanilha:dataHoraPlanilhaImportada||'',grupoNome:nomeGrupo(),
+      loja:lojaSelecionadaConferencia||'',lojaNome:lojaSelecionadaConferenciaNome||'',
+      itens:estoque,moveis:moveisData,motos:motosData,aires:airesData,sofas:sofasData,
+      motosChapas:{mapa:Object.fromEntries(Array.from(mapaChapasMotos.entries())),nomeArquivo:nomeArquivoChapasMotos||''},
+      base:meta.base,baseManual:meta.baseManual};
+    try{ autoSalvar(); }catch(_){}
+    salvaMeta(meta);
+    ccFechar();
+    baixa(dados,nomeArq('conferencia-compartilhada'));
+    alerta('Conferência pronta para enviar. Mande o arquivo para o colega e peça para ele usar "Receber conferência". Compartilhe só uma vez, no começo.','📤');
+  };
+
+  window.ccEnviarResultado=function(){
+    if(!temConferencia()){ alerta('Não há conferência aberta.','⚠️'); return; }
+    var meta=lerMeta();
+    if(!meta||!meta.shareId){ alerta('Esta conferência ainda não foi compartilhada nem recebida. Use "Compartilhar conferência atual" no começo da conferência.','⚠️'); return; }
+    var res={tipo:'estoq_resultado_compartilhado',versao:1,shareId:meta.shareId,deviceId:meta.deviceId||deviceId(),de:nomeUsr(),geradoEm:new Date().toISOString(),
+      d:meuDelta(meta),mx:{},mt:[],man:{e:[],m:[],a:[],s:[],t:[]},obs:{}};
+    var baseM={}; (meta.baseManual||[]).forEach(function(k){ baseM[k]=1; });
+    var man=listaManuais();
+    Object.keys(man).forEach(function(t){ man[t].forEach(function(it){ if(!baseM[t+'|'+chaveManual(it)]) res.man[t].push(it); }); });
+    [['m',moveisData],['a',airesData],['s',sofasData]].forEach(function(p){ (p[1]||[]).forEach(function(it){ if(!it||it.isAdicionadoManual) return; var c=cod(it); if(it.maxVolumes) res.mx[p[0]+'|'+c]=it.maxVolumes; if(it.obs&&String(it.obs).trim()) res.obs[p[0]+'|'+c]=String(it.obs); }); });
+    (estoque||[]).forEach(function(it){ if(it&&!ehManual(it)&&it.obs&&String(it.obs).trim()) res.obs['e|'+cod(it)]=String(it.obs); });
+    (motosData||[]).forEach(function(m){ if(!m||m.isAdicionadoManual) return; (m.chassis||[]).forEach(function(c){ if(c&&c.checado) res.mt.push(cod(m)+'|'+String(m.loja||'')+'|'+String(c.chassi||'')); }); });
+    var n=Object.keys(res.d).length+res.mt.length+Object.keys(res.man).reduce(function(a,t){return a+res.man[t].length;},0);
+    baixa(res,nomeArq('resultado'));
+    alerta('Resultado pronto ('+n+' alteraç'+(n===1?'ão':'ões')+'). Envie o arquivo para o colega e peça para ele usar "Carregar resultado do colega".','📨');
+    ccFechar();
+  };
+
+  window.ccEscolherArquivo=function(modo){
+    if(modo==='res'&&!temConferencia()){ alerta('Abra a conferência primeiro (a mesma que foi compartilhada) e depois carregue o resultado.','⚠️'); return; }
+    if(modo==='conf'&&modoConferenciaEspecificaAtivo){ alerta('Saia da conferência específica antes de receber outra conferência.','⚠️'); return; }
+    modoArq=modo;
+    var i=document.getElementById('ccArquivo'); i.value=''; i.click();
+  };
+  window.ccLerArquivo=function(inp){
+    var f=inp.files&&inp.files[0]; if(!f) return;
+    var r=new FileReader();
+    r.onload=function(){
+      var d=null; try{ d=JSON.parse(String(r.result||'')); }catch(_){ alerta('Esse arquivo não é válido.','⚠️'); return; }
+      if(modoArq==='conf'){
+        if(!d||d.tipo!=='estoq_conferencia_compartilhada'){ alerta('Esse arquivo não é uma conferência compartilhada.','⚠️'); return; }
+        if(temConferencia()){
+          confirmarAcao('Já existe uma conferência aberta. Receber a nova vai substituí-la — o que não foi salvo será perdido. Continuar?',function(ok){ if(ok!==false) escolherPasta(d); },{titulo:'Receber conferência',textoConfirmar:'Receber',perigo:true});
+        } else escolherPasta(d);
+      } else {
+        if(!d||d.tipo!=='estoq_resultado_compartilhado'){ alerta('Esse arquivo não é um resultado de conferência compartilhada.','⚠️'); return; }
+        carregarResultado(d);
+      }
+    };
+    r.onerror=function(){ alerta('Não foi possível ler o arquivo.','⚠️'); };
+    r.readAsText(f);
+  };
+
+  var pendenteRecebida=null;
+  function escolherPasta(d){
+    pendenteRecebida=d;
+    ccFechar();
+    abrirModalEscolherGrupo('__compartilhada_pasta__');
+  }
+  window.ccAplicarPasta=function(grupoId){
+    var d=pendenteRecebida; pendenteRecebida=null;
+    if(d) receber(d,grupoId);
+  };
+  function receber(d,grupoId){
+    try{
+      estoque=Array.isArray(d.itens)?d.itens:[]; moveisData=Array.isArray(d.moveis)?d.moveis:[]; motosData=Array.isArray(d.motos)?d.motos:[];
+      airesData=Array.isArray(d.aires)?d.aires:[]; sofasData=Array.isArray(d.sofas)?d.sofas:[];
+      motosImportadasPendentes=[]; stockEspecialAtivo=null;
+      mapaChapasMotos=new Map(Object.entries((d.motosChapas&&d.motosChapas.mapa)||{})); nomeArquivoChapasMotos=(d.motosChapas&&d.motosChapas.nomeArquivo)||'';
+      idConferenciaAtual='conf_'+Date.now(); tituloConferenciaAtual=d.titulo||('Conferencia '+new Date().toLocaleDateString('pt-BR'));
+      dataInicioConferencia=d.dataInicio||new Date().toISOString(); dataHoraPlanilhaImportada=d.dataHoraPlanilha||'';
+      lojaSelecionadaConferencia=d.loja||''; lojaSelecionadaConferenciaNome=d.lojaNome||'';
+      grupoConferenciaAtual=grupoId||null;
+      salvaMeta({shareId:d.shareId,deviceId:deviceId(),base:d.base||{},baseManual:d.baseManual||[],remotos:{},recebidaDe:d.de||''});
+      autoSalvar();
+      estadoContinuarSalvo=null;
+      ccFechar();
+      mostrarTelaComTransicao('screenCheck');
+      renderItems();
+      alerta('Conferência recebida'+(d.de?' de '+d.de:'')+' ('+estoque.length+' itens). Agora é só conferir a sua parte.','📥');
+    }catch(e){ console.error(e); alerta('Não foi possível abrir essa conferência.','⚠️'); }
+  }
+
+  function carregarResultado(res){
+    var meta=lerMeta();
+    if(!meta||!meta.shareId){ alerta('A conferência aberta não faz parte de uma conferência compartilhada. Use a mesma conferência que foi compartilhada ou recebida.','⚠️'); return; }
+    if(res.shareId!==meta.shareId){ alerta('Esse resultado é de outra conferência compartilhada. Confira se é o arquivo certo.','⚠️'); return; }
+    if(res.deviceId===meta.deviceId){ alerta('Esse resultado foi gerado neste mesmo celular.','⚠️'); return; }
+    var prev=((meta.remotos||{})[res.deviceId]||{}).d||{}, nov=res.d||{}, ign=0, ok=0, esp={};
+    // Móveis/Aires/Sofás só existem como catálogo depois que a tela é aberta: monta agora, como o app faz ao abrir
+    var precisa={m:false,a:false,s:false};
+    Object.keys(nov).concat(Object.keys(prev),Object.keys(res.mx||{}),Object.keys(res.obs||{})).forEach(function(k){ var t=k.charAt(0); if(precisa[t]===false) precisa[t]=true; });
+    try{ if(precisa.m&&typeof sincronizarCatalogoCompletoStockMoveis==='function') sincronizarCatalogoCompletoStockMoveis(); }catch(e){ console.warn(e); }
+    try{ if(precisa.a&&typeof sincronizarCatalogoStockEspecial==='function') sincronizarCatalogoStockEspecial('aires'); }catch(e){ console.warn(e); }
+    try{ if(precisa.s&&typeof sincronizarCatalogoStockEspecial==='function') sincronizarCatalogoStockEspecial('sofas'); }catch(e){ console.warn(e); }
+    function acha(arr,c,naoDeriv){ for(var i=0;i<(arr||[]).length;i++){ var it=arr[i]; if(it&&!ehManual(it)&&cod(it)===c&&(!naoDeriv||!derivado(it))) return it; } return null; }
+    function achaV(arr,c){ for(var i=0;i<(arr||[]).length;i++){ var it=arr[i]; if(it&&!it.isAdicionadoManual&&cod(it)===c) return it; } return null; }
+    uniao(prev,nov).forEach(function(k){
+      var diff=(nov[k]||0)-(prev[k]||0); if(!diff) return;
+      var p=k.split('|'), t=p[0], c=p[1];
+      if(t==='e'){
+        var it=acha(estoque,c,true); if(!it){ ign++; return; }
+        var antes=(it.fisico==null||it.fisico==='')?null:(Number(it.fisico)||0);
+        var novo=Math.max(0,(antes||0)+diff);
+        it.fisico=(antes===null&&novo===0)?null:novo; if('qtdFisico' in it) it.qtdFisico=it.fisico; ok++;
+      } else {
+        var arr=t==='m'?moveisData:(t==='a'?airesData:sofasData), v=achaV(arr,c); if(!v){ ign++; return; }
+        if(!v.volumes) v.volumes={};
+        v.volumes[p[2]]=Math.max(0,(Number(v.volumes[p[2]])||0)+diff); ok++;
+        if(t!=='m') esp[t+'|'+c]=v;
+      }
+    });
+    Object.keys(res.mx||{}).forEach(function(k){ var p=k.split('|'), arr=p[0]==='m'?moveisData:(p[0]==='a'?airesData:sofasData), v=achaV(arr,p[1]); var n=Number(res.mx[k])||0; if(v&&n>(Number(v.maxVolumes)||0)) v.maxVolumes=n; });
+    // observações: só entram quando o item ainda não tem uma
+    Object.keys(res.obs||{}).forEach(function(k){ var p=k.split('|'), t=p[0], c=p[1], it=t==='e'?acha(estoque,c,false):achaV(t==='m'?moveisData:(t==='a'?airesData:sofasData),c); if(it&&!(it.obs&&String(it.obs).trim())) it.obs=res.obs[k]; });
+    // chassis de motos: quem conferiu em qualquer aparelho vale
+    var mt=0;
+    (res.mt||[]).forEach(function(k){ var p=k.split('|'), c=p[0], lj=p[1], ch=p.slice(2).join('|'); var m=(motosData||[]).find(function(x){ return x&&!x.isAdicionadoManual&&cod(x)===c&&String(x.loja||'')===lj; })||(motosData||[]).find(function(x){ return x&&!x.isAdicionadoManual&&cod(x)===c; }); if(!m) return; var cc=(m.chassis||[]).find(function(x){ return x&&String(x.chassi||'')===ch; }); if(cc&&!cc.checado){ cc.checado=true; mt++; m.encontrado=(m.chassis||[]).filter(function(x){ return x.checado; }).length; } });
+    // itens adicionados por quem conferiu
+    var novos=0, alvo={e:estoque,m:moveisData,a:airesData,s:sofasData,t:motosData};
+    Object.keys(res.man||{}).forEach(function(t){ var arr=alvo[t]; if(!Array.isArray(arr)) return; var tem={}; arr.forEach(function(it){ if(it&&(t==='e'?ehManual(it):it.isAdicionadoManual)) tem[chaveManual(it)]=1; });
+      (res.man[t]||[]).forEach(function(it){ if(!it||tem[chaveManual(it)]) return; arr.push(JSON.parse(JSON.stringify(it))); novos++; }); });
+    // Aires/Sofás: recalcula o físico espelhado no estoque principal
+    var antigoAtivo=stockEspecialAtivo;
+    Object.keys(esp).forEach(function(k){ try{ stockEspecialAtivo=k.charAt(0)==='s'?'sofas':'aires'; sincronizarEstoqueTotalComStockEspecial(esp[k]); }catch(_){} });
+    stockEspecialAtivo=antigoAtivo;
+    meta.remotos=meta.remotos||{}; meta.remotos[res.deviceId]={ts:res.geradoEm,nome:res.de||'',d:nov};
+    salvaMeta(meta);
+    try{ invalidarCacheProprietarioConferencia(); }catch(_){}
+    autoSalvar();
+    try{ renderItems(); }catch(_){}
+    try{ construirMapaMoveis(); }catch(_){}
+    ccFechar();
+    alerta('Resultado'+(res.de?' de '+res.de:'')+' somado: '+ok+' contagens'+(mt?', '+mt+' chassis':'')+(novos?', '+novos+' itens adicionados':'')+'.'+(ign?' '+ign+' contagens não entraram (item não encontrado ou já contado em outra tela).':''),'🧮');
+  }
 })();
 </script>
 </body>
