@@ -35,6 +35,33 @@ jobs:
             convert icon-512.png -resize ${s}x${s} $RES/mipmap-$n/ic_launcher.png
             convert icon-512.png -resize ${s}x${s} \( -size ${s}x${s} xc:none -fill white -draw "circle $((s/2)),$((s/2)) $((s/2)),0" \) -compose DstIn -composite $RES/mipmap-$n/ic_launcher_round.png
           done
+      - name: Assinar com a chave fixa e aumentar a versao
+        run: |
+          test -f estoq.keystore
+          python3 - <<'PY'
+          import re
+          p = 'android/app/build.gradle'
+          s = open(p, encoding='utf-8').read()
+          run = '${{ github.run_number }}'
+          s = re.sub(r'versionCode\s+\d+', 'versionCode ' + run, s, count=1)
+          s = re.sub(r'versionName\s+"[^"]*"', 'versionName "1.0.' + run + '"', s, count=1)
+          sign = (
+              "    signingConfigs {\n"
+              "        estoq {\n"
+              "            storeFile file('../../estoq.keystore')\n"
+              "            storePassword 'estoq2026'\n"
+              "            keyAlias 'estoq'\n"
+              "            keyPassword 'estoq2026'\n"
+              "        }\n"
+              "    }\n"
+          )
+          s = s.replace('android {\n', 'android {\n' + sign, 1)
+          s = s.replace('buildTypes {\n', 'buildTypes {\n        debug {\n            signingConfig signingConfigs.estoq\n        }\n', 1)
+          assert 'signingConfig signingConfigs.estoq' in s, 'assinatura nao aplicada'
+          assert 'versionCode ' + run in s, 'versao nao aplicada'
+          open(p, 'w', encoding='utf-8').write(s)
+          PY
+          grep -n "versionCode\|versionName\|signingConfig" android/app/build.gradle
       - name: Compilar
         run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - name: Publicar APK na Release
@@ -43,4 +70,4 @@ jobs:
         run: |
           cp android/app/build/outputs/apk/debug/app-debug.apk EstoQ.apk
           gh release delete latest --yes --cleanup-tag || true
-          gh release create latest EstoQ.apk --title "EstoQ" --notes "APK mais recente"
+          gh release create latest EstoQ.apk --title "EstoQ" --notes "APK versao ${{ github.run_number }}"
